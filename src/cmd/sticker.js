@@ -6,7 +6,6 @@ const { MessageTypes } = pkg
 /**
  * Handle the sticker command
  * @param {import("whatsapp-web.js").Message} message - The incoming message
- * @param {import("whatsapp-web.js").Client} client - The WhatsApp client instance
  */
 const imageOrVideoToStickerHandler = async (message) => {
   try {
@@ -46,6 +45,10 @@ const imageOrVideoToStickerHandler = async (message) => {
   }
 }
 
+/**
+ * Handle the sticker command
+ * @param {import("whatsapp-web.js").Message} message - The incoming message
+ */
 const stickerToImageOrVideoHandler = async (message) => {
   try {
     if (!message.hasQuotedMsg) return message.reply("Silahkan quote sticker yang mau dikonversi!")
@@ -55,7 +58,9 @@ const stickerToImageOrVideoHandler = async (message) => {
     const media = await quotedMessage.downloadMedia()
     if (!media) return message.reply("Tidak dapat mengunduh media. Coba kirim ulang ya!")
 
-    await message.reply(media)
+    await message.reply("Berikut adalah hasil konversi.", undefined, {
+      media: media
+    })
   } catch (error) {
     terminal.error(`Error converting sticker to image/video: ${error.message}`)
     await message.reply("Lagi ada error nih, coba lagi nanti ya!")

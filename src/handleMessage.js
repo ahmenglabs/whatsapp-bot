@@ -9,7 +9,6 @@ import { imageOrVideoToStickerHandler, stickerToImageOrVideoHandler } from "./cm
 /**
  * Handle incoming messages
  * @param {import("whatsapp-web.js").Message} message - The incoming message
- * @param {import("whatsapp-web.js").Client} client - The WhatsApp client instance
  */
 const handleMessage = async (message) => {
   try {
