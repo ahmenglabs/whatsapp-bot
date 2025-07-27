@@ -20,5 +20,5 @@ git clone https://github.com/ahmenglabs/whatsapp-bot
 cd whatsapp-bot
 
 # Deploy the project
-docker compose up -d
+sudo docker compose up -d
 ```
