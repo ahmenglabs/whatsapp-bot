@@ -4,7 +4,7 @@ import pkg from "whatsapp-web.js"
 const { MessageTypes } = pkg
 
 // Command Handlers
-import handleStickerCommand from "./cmd/sticker.js"
+import { imageOrVideoToStickerHandler, stickerToImageOrVideoHandler } from "./cmd/sticker.js"
 
 /**
  * Handle incoming messages
@@ -17,18 +17,23 @@ const handleMessage = async (message) => {
     if (
       message.type !== MessageTypes.TEXT &&
       message.type !== MessageTypes.IMAGE &&
-      message.type !== MessageTypes.VIDEO
+      message.type !== MessageTypes.VIDEO &&
+      message.type !== MessageTypes.STICKER
     )
       return
 
-    const from = message.from
-    const messageId = message.id._serialized
     const text = message.body
     const cmd = text.toLowerCase().trim().slice(1).split(" ")[0]
 
     switch (cmd) {
       case "sticker":
-        await handleStickerCommand(message)
+      case "stiker":
+        await imageOrVideoToStickerHandler(message)
+        break
+
+      case "toimage":
+      case "tovideo":
+        await stickerToImageOrVideoHandler(message)
         break
 
       default:
