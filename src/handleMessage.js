@@ -15,7 +15,6 @@ const geminiEnabled = new Set()
  */
 const handleMessage = async (message) => {
   try {
-    if (message.fromMe) return
     if (
       message.type !== MessageTypes.AUDIO &&
       message.type !== MessageTypes.TEXT &&
