@@ -67,7 +67,7 @@ const geminiHandler = async (message) => {
       message: contents,
     })
 
-    chatHistory.set(chat.getHistory())
+    chatHistory.set(chatId, chat.getHistory())
     await message.reply(response.text)
   } catch (error) {
     console.error(`Error handling gemini command: ${error.message}`)
