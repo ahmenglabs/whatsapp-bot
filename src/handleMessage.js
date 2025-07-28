@@ -66,7 +66,7 @@ const handleMessage = async (message) => {
         break
     }
 
-    if (!isCmd && !isGroup && (isGroup || geminiEnabled.has(message.from))) {
+    if ((!isCmd && !isGroup) || (!isCmd && geminiEnabled.has(message.from))) {
       await geminiHandler(message)
     }
   } catch (error) {
