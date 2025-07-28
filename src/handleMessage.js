@@ -32,20 +32,20 @@ const handleMessage = async (message) => {
     const isGroup = chat.isGroup
     const args = text.slice(prefix.length).trim().split(/ +/).slice(1)
 
-    await chat.sendSeen()
-
     switch (cmd) {
       case prefix + "sticker":
       case "stiker":
-        await chat.sendStateTyping()
-        await imageOrVideoToStickerHandler(message)
+        await Promise.all([chat.sendSeen(), chat.sendStateTyping(), imageOrVideoToStickerHandler(message)])
         break
 
       case prefix + "toimage":
       case prefix + "tovideo":
-        return await stickerToImageOrVideoHandler(message)
+        await Promise.all([chat.sendSeen(), chat.sendStateTyping(), stickerToImageOrVideoHandler(message)])
+        break
 
       case prefix + "gemini":
+        await Promise.all([chat.sendSeen(), chat.sendStateTyping()])
+
         if (args.length === 0) return message.reply("Contoh: .gemini on atau .gemini off")
         if (args[0] === "on") {
           if (geminiEnabled.has(message.from)) {
@@ -68,8 +68,7 @@ const handleMessage = async (message) => {
     }
 
     if ((!isCmd && !isGroup) || (!isCmd && geminiEnabled.has(message.from))) {
-      await chat.sendStateTyping()
-      await geminiHandler(message)
+      await Promise.all([chat.sendSeen(), chat.sendStateTyping(), geminiHandler(message)])
     }
   } catch (error) {
     terminal.error(`Error handling message: ${error.message}`)

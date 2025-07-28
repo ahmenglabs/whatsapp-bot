@@ -32,9 +32,7 @@ client.on("message", async (message) => {
   if (loadingPercent < 99) return
   if (message.fromMe) return
 
-  await client.sendPresenceAvailable()
-  await handleMessage(message)
-  setTimeout(() => client.sendPresenceUnavailable(), 5 * 60 * 1000) // 5 minutes
+  await Promise.all([client.sendPresenceAvailable(), handleMessage(message)])
 })
 
 client.on("disconnected", (reason) => {
