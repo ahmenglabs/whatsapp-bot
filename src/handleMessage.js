@@ -32,6 +32,9 @@ const handleMessage = async (message) => {
     const isGroup = chat.isGroup
     const args = text.slice(prefix.length).trim().split(/ +/).slice(1)
 
+    await chat.sendSeen()
+    await chat.sendStateTyping()
+
     switch (cmd) {
       case prefix+"sticker":
       case "stiker":
