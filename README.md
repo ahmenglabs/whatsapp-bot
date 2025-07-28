@@ -24,6 +24,13 @@ cd whatsapp-bot
 # Create auth and cache folders.
 mkdir .wwebjs_auth .wwebjs_cache
 
+# Create .env
+mv .env.example .env
+nano .env
+
+# Create system-instruction.txt
+nano system-instruction.txt
+
 # Deploy the project
 sudo docker compose up -d
 ```

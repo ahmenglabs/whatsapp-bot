@@ -29,7 +29,7 @@ client.on("ready", () => {
 })
 
 client.on("message", async (message) => {
-  if (loadingPercent < 100) return
+  if (loadingPercent < 99) return
   await handleMessage(message)
 })
 
