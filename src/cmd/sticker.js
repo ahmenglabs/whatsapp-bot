@@ -24,12 +24,7 @@ const imageOrVideoToStickerHandler = async (message) => {
       )
     }
 
-    let media
-    if (quotedMessage) {
-      media = await quotedMessage.downloadMedia()
-    } else {
-      media = await message.downloadMedia()
-    }
+    let media = message.hasQuotedMsg ? await quotedMessage.downloadMedia() : await message.downloadMedia()
 
     if (!media) {
       return message.reply("Tidak dapat mengunduh media. Coba kirim ulang ya!")

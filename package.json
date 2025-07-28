@@ -15,6 +15,7 @@
     "prettier": "3.6.2"
   },
   "dependencies": {
+    "@google/genai": "^1.11.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.1",
     "whatsapp-web.js": "^1.31.0"
