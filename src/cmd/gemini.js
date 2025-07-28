@@ -16,7 +16,7 @@ try {
   terminal.warn(`Failed to load system instruction: ${error.message}`)
 }
 
-const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY})
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 const chatHistory = new Map()
 
@@ -35,8 +35,8 @@ const geminiHandler = async (message) => {
       model: "gemini-2.5-flash",
       history: history,
       config: {
-        systemInstruction: systemInstruction
-      }
+        systemInstruction: systemInstruction,
+      },
     })
 
     const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
@@ -48,18 +48,18 @@ const geminiHandler = async (message) => {
         {
           inlineData: {
             mimeType: media.mimetype,
-            data: media.data
-          }
+            data: media.data,
+          },
         },
         {
-          text: message.hasQuotedMsg ? `Replying to: ${quotedMessage.body}\n\n${message.body}` : message.body
-        }
+          text: message.hasQuotedMsg ? `Replying to: ${quotedMessage.body}\n\n${message.body}` : message.body,
+        },
       ]
     } else {
       contents = [
         {
-          text: message.body
-        }
+          text: message.body,
+        },
       ]
     }
 

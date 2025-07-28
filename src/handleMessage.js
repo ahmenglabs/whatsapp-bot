@@ -33,20 +33,19 @@ const handleMessage = async (message) => {
     const args = text.slice(prefix.length).trim().split(/ +/).slice(1)
 
     await chat.sendSeen()
-    await chat.sendStateTyping()
 
     switch (cmd) {
-      case prefix+"sticker":
+      case prefix + "sticker":
       case "stiker":
+        await chat.sendStateTyping()
         await imageOrVideoToStickerHandler(message)
         break
 
-      case prefix+"toimage":
-      case prefix+"tovideo":
+      case prefix + "toimage":
+      case prefix + "tovideo":
         return await stickerToImageOrVideoHandler(message)
 
-      
-      case prefix+"gemini":
+      case prefix + "gemini":
         if (args.length === 0) return message.reply("Contoh: .gemini on atau .gemini off")
         if (args[0] === "on") {
           if (geminiEnabled.has(message.from)) {
@@ -69,6 +68,7 @@ const handleMessage = async (message) => {
     }
 
     if ((!isCmd && !isGroup) || (!isCmd && geminiEnabled.has(message.from))) {
+      await chat.sendStateTyping()
       await geminiHandler(message)
     }
   } catch (error) {

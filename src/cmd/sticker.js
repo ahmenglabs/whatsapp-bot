@@ -54,7 +54,7 @@ const stickerToImageOrVideoHandler = async (message) => {
     if (!media) return message.reply("Tidak dapat mengunduh media. Coba kirim ulang ya!")
 
     await message.reply("Berikut adalah hasil konversi.", undefined, {
-      media: media
+      media: media,
     })
   } catch (error) {
     terminal.error(`Error converting sticker to image/video: ${error.message}`)
