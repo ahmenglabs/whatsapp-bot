@@ -152,28 +152,40 @@ const saveWaveFile = (filename, pcmData, channels = 1, rate = 24000, sampleWidth
   })
 }
 
+let lastErrorTime = null
+
 const textToSpeech = async (text, fileName) => {
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text: `Read aloud in a warm and friendly tone: ${text}` }] }],
-    config: {
-      responseModalities: ["AUDIO"],
-      speechConfig: {
-        prebuiltVoiceConfig: { voiceName: "Zephyr", language: "id-ID" },
+  try {
+    if (lastErrorTime && Date.now() - lastErrorTime < 24 * 60 * 60 * 1000) return
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text: `Read aloud in a warm and friendly tone: ${text}` }] }],
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          prebuiltVoiceConfig: { voiceName: "Zephyr", language: "id-ID" },
+        },
       },
-    },
-  })
+    })
 
-  const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data
-  const audioBuffer = Buffer.from(data, "base64")
+    const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data
+    const audioBuffer = Buffer.from(data, "base64")
 
-  const wavPath = fileName
-  const opusPath = fileName.replace(".wav", ".opus")
+    const wavPath = fileName
+    const opusPath = fileName.replace(".wav", ".opus")
 
-  await saveWaveFile(wavPath, audioBuffer)
-  await convertWavToOpus(path.join(__dirname, wavPath), path.join(__dirname, opusPath))
+    await saveWaveFile(wavPath, audioBuffer)
+    await convertWavToOpus(path.join(__dirname, wavPath), path.join(__dirname, opusPath))
 
-  return opusPath
+    return opusPath
+  } catch (error) {
+    if (!lastErrorTime || Date.now() - lastErrorTime >= 24 * 60 * 60 * 1000) {
+      lastErrorTime = Date.now()
+    }
+
+    terminal.error(error)
+  }
 }
 
 export default geminiHandler
