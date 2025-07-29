@@ -136,7 +136,7 @@ const geminiHandler = async (message, roomChat) => {
         await message.reply(response.text)
       })
   } catch (error) {
-    if (error.message.includes("rate limit") || error.message.includes("quota")) {
+    try {
       if (!lastGeminiFlashRateLimited || Date.now() - lastGeminiFlashRateLimited >= 24 * 60 * 60 * 1000) {
         lastGeminiFlashRateLimited = Date.now()
 
@@ -202,20 +202,17 @@ const geminiHandler = async (message, roomChat) => {
                 await message.reply(response.text)
               })
             return
-          } catch (liteError) {
-            if (liteError.message.includes("rate limit") || liteError.message.includes("quota")) {
-              lastGeminiFlashLiteRateLimited = Date.now()
-            }
+          } catch (error) {
+            lastGeminiFlashLiteRateLimited = Date.now()
           }
         }
       }
 
       await message.reply("Gemini lagi rate limited nih, coba lagi nanti ya!")
-    } else {
+    } catch (error) {
       terminal.error(error)
-      await message.reply("Lagi ada error nih, coba lagi nanti ya!")
+      message.reply("Lagi error nih, coba lagi nanti ya!")
     }
-    throw error
   }
 }
 
@@ -274,13 +271,11 @@ const textToSpeech = async (text, fileName) => {
 
     return opusPath
   } catch (error) {
-    if (error.message.includes("rate limit") || error.message.includes("quota")) {
-      if (!lastGeminiFLashTtsRateLimited || Date.now() - lastGeminiFLashTtsRateLimited >= 24 * 60 * 60 * 1000) {
-        lastGeminiFLashTtsRateLimited = Date.now()
-      }
+    if (!lastGeminiFLashTtsRateLimited || Date.now() - lastGeminiFLashTtsRateLimited >= 24 * 60 * 60 * 1000) {
+      lastGeminiFLashTtsRateLimited = Date.now()
     }
 
-    terminal.error(error)
+    throw new Error(error)
   }
 }
 
