@@ -105,13 +105,13 @@ const geminiHandler = async (message, roomChat) => {
           },
         },
         {
-          text: message.hasQuotedMsg ? `Replying to ${quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
+          text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
         },
       ]
     } else {
       contents = [
         {
-          text: message.body,
+          text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
         },
       ]
     }
@@ -171,13 +171,13 @@ const geminiHandler = async (message, roomChat) => {
                   },
                 },
                 {
-                  text: message.hasQuotedMsg ? `Replying to ${quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
+                  text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
                 },
               ]
             } else {
               contents = [
                 {
-                  text: message.body,
+                  text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
                 },
               ]
             }
