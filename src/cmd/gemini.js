@@ -131,7 +131,6 @@ const geminiHandler = async (message, roomChat) => {
         fs.unlinkSync(path.join(__dirname, "out.opus"))
       })
       .catch(async (error) => {
-        terminal.error(error)
         await roomChat.sendStateTyping()
         await message.reply(response.text)
       })
@@ -197,7 +196,6 @@ const geminiHandler = async (message, roomChat) => {
                 fs.unlinkSync(path.join(__dirname, "out.opus"))
               })
               .catch(async (error) => {
-                terminal.error(error)
                 await roomChat.sendStateTyping()
                 await message.reply(response.text)
               })
