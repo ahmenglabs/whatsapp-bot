@@ -123,16 +123,20 @@ const geminiHandler = async (message, roomChat) => {
     chatHistory.set(chatId, chat.getHistory())
     textToSpeech(response.text, "out.wav")
       .then(async () => {
-        const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
-        await roomChat.sendStateRecording()
-        await message.reply(media, undefined, { sendAudioAsVoice: true })
+        if (fs.existsSync(path.join(__dirname, "out.wav"))) {
+          const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
+          await roomChat.sendStateRecording()
+          await message.reply(media, undefined, { sendAudioAsVoice: true })
 
-        fs.unlinkSync(path.join(__dirname, "out.wav"))
-        fs.unlinkSync(path.join(__dirname, "out.opus"))
+          fs.unlinkSync(path.join(__dirname, "out.wav"))
+          fs.unlinkSync(path.join(__dirname, "out.opus"))
+        } else {
+          await roomChat.sendStateTyping()
+          await message.reply(response.text)
+        }
       })
       .catch(async (error) => {
-        await roomChat.sendStateTyping()
-        await message.reply(response.text)
+        terminal.error(error)
       })
   } catch (error) {
     try {
@@ -272,8 +276,6 @@ const textToSpeech = async (text, fileName) => {
     if (!lastGeminiFLashTtsRateLimited || Date.now() - lastGeminiFLashTtsRateLimited >= 24 * 60 * 60 * 1000) {
       lastGeminiFLashTtsRateLimited = Date.now()
     }
-
-    throw new Error(error)
   }
 }
 
