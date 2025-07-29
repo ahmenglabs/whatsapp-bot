@@ -17,10 +17,10 @@ const handleMessage = async (message) => {
   try {
     if (
       message.type !== MessageTypes.AUDIO &&
+      message.type !== MessageTypes.VOICE &&
       message.type !== MessageTypes.TEXT &&
       message.type !== MessageTypes.IMAGE &&
-      message.type !== MessageTypes.VIDEO &&
-      message.type !== MessageTypes.STICKER
+      message.type !== MessageTypes.VIDEO
     )
       return
 
@@ -68,7 +68,7 @@ const handleMessage = async (message) => {
     }
 
     if ((!isCmd && !isGroup) || (!isCmd && geminiEnabled.has(message.from))) {
-      await Promise.all([chat.sendSeen(), chat.sendStateTyping(), geminiHandler(message)])
+      await Promise.all([chat.sendSeen(), geminiHandler(message, chat)])
     }
   } catch (error) {
     terminal.error(`Error handling message: ${error.message}`)
