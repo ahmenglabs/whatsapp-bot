@@ -36,7 +36,7 @@ client.on("message", async (message) => {
 })
 
 client.on("disconnected", (reason) => {
-  terminal.error(`Client was disconnected. Reason: ${reason}`)
+  terminal.error(error)
 })
 
 client.initialize()

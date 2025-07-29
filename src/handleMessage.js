@@ -71,7 +71,7 @@ const handleMessage = async (message) => {
       await Promise.all([chat.sendSeen(), geminiHandler(message, chat)])
     }
   } catch (error) {
-    terminal.error(`Error handling message: ${error.message}`)
+    terminal.error(error)
   }
 }
 

@@ -34,7 +34,7 @@ const imageOrVideoToStickerHandler = async (message) => {
       sendMediaAsSticker: true,
     })
   } catch (error) {
-    terminal.error(`Error handling sticker command: ${error.message}`)
+    terminal.error(error)
     await message.reply("Lagi ada error nih, coba lagi nanti ya!")
     throw error
   }
@@ -57,7 +57,7 @@ const stickerToImageOrVideoHandler = async (message) => {
       media: media,
     })
   } catch (error) {
-    terminal.error(`Error converting sticker to image/video: ${error.message}`)
+    terminal.error(error)
     await message.reply("Lagi ada error nih, coba lagi nanti ya!")
     throw error
   }
