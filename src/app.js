@@ -33,10 +33,11 @@ client.on("message", async (message) => {
   if (message.fromMe) return
 
   await Promise.all([client.sendPresenceAvailable(), handleMessage(message)])
+  setTimeout(() => client.sendPresenceUnavailable(), 30 * 1000)
 })
 
 client.on("disconnected", (reason) => {
-  terminal.error(error)
+  terminal.error(reason)
 })
 
 client.initialize()
