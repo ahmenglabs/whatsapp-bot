@@ -14,7 +14,7 @@ const runPythonCodeHandler = async (message, chat, code) => {
     let output = ""
     let errorOutput = ""
     let isCompleted = false
-    const TIMEOUT_MS = 60000 // 60 detik
+    const timeoutRuntime = 2 * 60 * 1000
 
     const pythonPromise = new Promise((resolve) => {
       const pythonPath = process.env.PYTHON_PATH || "python"
@@ -33,7 +33,7 @@ const runPythonCodeHandler = async (message, chat, code) => {
 
         let result
         if (errorOutput) {
-          result = `Error: ${errorOutput.trim()}`
+          result = errorOutput.trim()
         } else if (output) {
           result = output.trim()
         } else {
@@ -45,23 +45,22 @@ const runPythonCodeHandler = async (message, chat, code) => {
 
       pythonProcess.on("error", (error) => {
         isCompleted = true
-        resolve(`Error: ${error.message}`)
+        resolve(error.message)
       })
     })
 
     const timeoutPromise = new Promise((resolve) => {
       setTimeout(() => {
         if (!isCompleted) {
-          // Format timeout sama seperti hasil normal
           if (errorOutput) {
-            resolve(`Error: ${errorOutput.trim()}`)
+            resolve(errorOutput.trim())
           } else if (output) {
             resolve(output.trim())
           } else {
-            resolve("Timeout - tidak ada output")
+            resolve("Timeout - Tdak ada output")
           }
         }
-      }, TIMEOUT_MS)
+      }, timeoutRuntime)
     })
 
     const result = await Promise.race([pythonPromise, timeoutPromise])
@@ -73,7 +72,7 @@ const runPythonCodeHandler = async (message, chat, code) => {
   } catch (error) {
     const executionTime = ((Date.now() - startTime) / 1000).toFixed(2)
     terminal.error(`Python execution error: ${error.message}`)
-    const errorMessage = `Kode dijalankan dalam ${executionTime} detik\n\nError: ${error.message}`
+    const errorMessage = `Kode dijalankan dalam ${executionTime} detik\n\n${error.message}`
 
     await chat.sendStateTyping()
     await message.reply(errorMessage)
