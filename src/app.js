@@ -3,6 +3,7 @@ import pkg from "whatsapp-web.js"
 const { Client, LocalAuth } = pkg
 import terminal from "./utils/terminal.js"
 import handleMessage from "./handleMessage.js"
+import qrcode from "qrcode-terminal"
 
 const client = new Client({
   puppeteer: {
@@ -21,7 +22,7 @@ client.on("loading_screen", (percent) => {
 
 client.on("qr", (qr) => {
   terminal.info("QR Code received, scan it with your WhatsApp app to log in.")
-  terminal.info(qr)
+  qrcode.generate(qr, { small: true })
 })
 
 client.on("ready", () => {
@@ -41,3 +42,9 @@ client.on("disconnected", (reason) => {
 })
 
 client.initialize()
+
+process.on("SIGINT", () => {
+  terminal.info("Shutting down WhatsApp Bot!")
+  client.destroy()
+  process.exit(0)
+})

@@ -6,6 +6,7 @@ const { MessageTypes } = pkg
 // Command Handlers
 import { imageOrVideoToStickerHandler, stickerToImageOrVideoHandler } from "./cmd/sticker.js"
 import geminiHandler from "./cmd/gemini.js"
+import { runPythonCodeHandler } from "./cmd/python.js"
 
 const geminiEnabled = new Set()
 
@@ -25,22 +26,23 @@ const handleMessage = async (message) => {
       return
 
     const text = message.body
-    const cmd = text.toLowerCase().trim().split(" ")[0]
+    const firstLine = text.split("\n")[0] // Ambil baris pertama untuk check command
+    const cmd = firstLine.toLowerCase().trim().split(" ")[0]
     const prefix = process.env.PREFIX || "."
-    const isCmd = text.startsWith(prefix)
+    const isCmd = firstLine.startsWith(prefix) // Check command dari baris pertama
     const chat = await message.getChat()
     const isGroup = chat.isGroup
-    const args = text.slice(prefix.length).trim().split(/ +/).slice(1)
+    const args = firstLine.slice(prefix.length).trim().split(/ +/).slice(1)
 
     switch (cmd) {
       case prefix + "sticker":
       case "stiker":
-        await Promise.all([chat.sendSeen(), chat.sendStateTyping(), imageOrVideoToStickerHandler(message)])
+        await Promise.all([chat.sendSeen(), imageOrVideoToStickerHandler(message, chat)])
         break
 
       case prefix + "toimage":
       case prefix + "tovideo":
-        await Promise.all([chat.sendSeen(), chat.sendStateTyping(), stickerToImageOrVideoHandler(message)])
+        await Promise.all([chat.sendSeen(), stickerToImageOrVideoHandler(message, chat)])
         break
 
       case prefix + "gemini":
@@ -62,6 +64,29 @@ const handleMessage = async (message) => {
         } else {
           return message.reply("Perintah tidak dikenali. Gunakan .gemini on atau .gemini off")
         }
+
+      case prefix + "python":
+      case prefix + "py": {
+        let code = ""
+
+        if (message.hasQuotedMsg) {
+          const quotedMsg = await message.getQuotedMessage()
+          code = quotedMsg.body.trim()
+        } else {
+          const regexPattern = new RegExp(`^\\${prefix}(python|py)\\s*`, "i")
+          code = text.replace(regexPattern, "").trim()
+        }
+
+        if (!code) {
+          await chat.sendSeen()
+          await chat.sendStateTyping()
+          return message.reply(
+            `Silakan kirim kode Python atau reply pesan yang berisi kode Python.\n\nContoh: ${prefix}python print('Hello, World!')`
+          )
+        }
+
+        return await Promise.all([chat.sendSeen(), runPythonCodeHandler(message, chat, code)])
+      }
 
       default:
         break

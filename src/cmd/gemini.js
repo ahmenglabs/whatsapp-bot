@@ -52,9 +52,19 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 const chatHistory = new Map()
 
-let lastGeminiFlashRateLimited = null
-let lastGeminiFlashLiteRateLimited = null
-let lastGeminiFLashTtsRateLimited = null
+let totalGeminiFlashError = 0
+let totalGeminiFlashLiteError = 0
+let totalGeminiFlashTtsError = 0
+let lastErrorCountReset = Date.now()
+
+const resetErrorCountsIfNeeded = () => {
+  if (Date.now() - lastErrorCountReset >= 24 * 60 * 60 * 1000) {
+    totalGeminiFlashError = 0
+    totalGeminiFlashLiteError = 0
+    totalGeminiFlashTtsError = 0
+    lastErrorCountReset = Date.now()
+  }
+}
 
 /**
  * Handle incoming messages
@@ -62,22 +72,16 @@ let lastGeminiFLashTtsRateLimited = null
  * @param {import("whatsapp-web.js").Chat} roomChat - The chat object
  */
 const geminiHandler = async (message, roomChat) => {
+  resetErrorCountsIfNeeded()
+  let modelName = "gemini-2.5-flash"
+
   try {
     const chatId = message.from
     const contact = await message.getContact()
     const authorName = contact.name || contact.pushname || "Unknown"
     const history = chatHistory.get(chatId) || []
 
-    if (
-      lastGeminiFlashRateLimited && Date.now() - lastGeminiFlashRateLimited < 24 * 60 * 60 * 1000 &&
-      lastGeminiFlashLiteRateLimited && Date.now() - lastGeminiFlashLiteRateLimited < 24 * 60 * 60 * 1000
-    ) {
-      await message.reply("Gemini lagi rate limited nih, coba lagi nanti ya!")
-      return
-    }
-
-    let modelName = "gemini-2.5-flash"
-    if (lastGeminiFlashRateLimited && Date.now() - lastGeminiFlashRateLimited < 24 * 60 * 60 * 1000) {
+    if (totalGeminiFlashError >= 3) {
       modelName = "gemini-2.5-flash-lite"
     }
 
@@ -92,7 +96,9 @@ const geminiHandler = async (message, roomChat) => {
 
     const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
     const quotedMessageContact = quotedMessage ? await quotedMessage.getContact() : null
-    const quotedAuthorName = quotedMessageContact ? (quotedMessageContact.name || quotedMessageContact.pushname || "Unknown") : "Unknown"
+    const quotedAuthorName = quotedMessageContact
+      ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
+      : "Unknown"
     let contents
 
     if (message.hasMedia || (message.hasQuotedMsg && quotedMessage.hasMedia)) {
@@ -105,13 +111,17 @@ const geminiHandler = async (message, roomChat) => {
           },
         },
         {
-          text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
+          text: message.hasQuotedMsg
+            ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+            : `${authorName}: ${message.body}`,
         },
       ]
     } else {
       contents = [
         {
-          text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
+          text: message.hasQuotedMsg
+            ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+            : `${authorName}: ${message.body}`,
         },
       ]
     }
@@ -138,83 +148,102 @@ const geminiHandler = async (message, roomChat) => {
       .catch(async (error) => {
         terminal.error(error)
       })
+    // eslint-disable-next-line no-unused-vars
   } catch (error) {
     try {
-      if (!lastGeminiFlashRateLimited || Date.now() - lastGeminiFlashRateLimited >= 24 * 60 * 60 * 1000) {
-        lastGeminiFlashRateLimited = Date.now()
+      if (modelName === "gemini-2.5-flash") {
+        totalGeminiFlashError++
+      } else if (modelName === "gemini-2.5-flash-lite") {
+        totalGeminiFlashLiteError++
+      }
 
-        if (!lastGeminiFlashLiteRateLimited || Date.now() - lastGeminiFlashLiteRateLimited >= 24 * 60 * 60 * 1000) {
-          try {
-            const chatId = message.from
-            const contact = await message.getContact()
-            const authorName = contact.name || contact.pushname || "Unknown"
+      if (totalGeminiFlashError < 3) {
+        await message.reply("Oops, ada yang error nih. Coba kirim lagi pesannya ya!")
+        return
+      }
 
-            const history = chatHistory.get(chatId) || []
-            const chat = ai.chats.create({
-              model: "gemini-2.5-flash-lite",
-              history: history,
-              config: {
-                systemInstruction: systemInstruction,
-                safetySettings: safetySettings,
+      if (totalGeminiFlashError >= 3 && totalGeminiFlashLiteError < 3) {
+        try {
+          const chatId = message.from
+          const contact = await message.getContact()
+          const authorName = contact.name || contact.pushname || "Unknown"
+
+          const history = chatHistory.get(chatId) || []
+          const chat = ai.chats.create({
+            model: "gemini-2.5-flash-lite",
+            history: history,
+            config: {
+              systemInstruction: systemInstruction,
+              safetySettings: safetySettings,
+            },
+          })
+
+          const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
+          const quotedMessageContact = quotedMessage ? await quotedMessage.getContact() : null
+          const quotedAuthorName = quotedMessageContact
+            ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
+            : "Unknown"
+          let contents
+
+          if (message.hasMedia || (message.hasQuotedMsg && quotedMessage.hasMedia)) {
+            const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage.downloadMedia()
+            contents = [
+              {
+                inlineData: {
+                  mimeType: media.mimetype,
+                  data: media.data,
+                },
               },
-            })
-
-            const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
-            const quotedMessageContact = quotedMessage ? await quotedMessage.getContact() : null
-            const quotedAuthorName = quotedMessageContact ? (quotedMessageContact.name || quotedMessageContact.pushname || "Unknown") : "Unknown"
-            let contents
-
-            if (message.hasMedia || (message.hasQuotedMsg && quotedMessage.hasMedia)) {
-              const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage.downloadMedia()
-              contents = [
-                {
-                  inlineData: {
-                    mimeType: media.mimetype,
-                    data: media.data,
-                  },
-                },
-                {
-                  text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
-                },
-              ]
-            } else {
-              contents = [
-                {
-                  text: message.hasQuotedMsg ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}` : `${authorName}: ${message.body}`,
-                },
-              ]
-            }
-
-            const response = await chat.sendMessage({
-              message: contents,
-            })
-
-            chatHistory.set(chatId, chat.getHistory())
-            textToSpeech(response.text, "out.wav")
-              .then(async () => {
-                if (fs.existsSync(path.join(__dirname, "out.wav"))) {
-                  const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
-                  await roomChat.sendStateRecording()
-                  await message.reply(media, undefined, { sendAudioAsVoice: true })
-
-                  fs.unlinkSync(path.join(__dirname, "out.wav"))
-                  fs.unlinkSync(path.join(__dirname, "out.opus"))
-                } else {
-                  await roomChat.sendStateTyping()
-                  await message.reply(response.text)
-                }
-              })
-              .catch(async (error) => {
-                terminal.error(error)
-              })
-            return
-          } catch (error) {
-            lastGeminiFlashLiteRateLimited = Date.now()
+              {
+                text: message.hasQuotedMsg
+                  ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+                  : `${authorName}: ${message.body}`,
+              },
+            ]
+          } else {
+            contents = [
+              {
+                text: message.hasQuotedMsg
+                  ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+                  : `${authorName}: ${message.body}`,
+              },
+            ]
           }
+
+          const response = await chat.sendMessage({
+            message: contents,
+          })
+
+          chatHistory.set(chatId, chat.getHistory())
+          textToSpeech(response.text, "out.wav")
+            .then(async () => {
+              if (fs.existsSync(path.join(__dirname, "out.wav"))) {
+                const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
+                await roomChat.sendStateRecording()
+                await message.reply(media, undefined, { sendAudioAsVoice: true })
+
+                fs.unlinkSync(path.join(__dirname, "out.wav"))
+                fs.unlinkSync(path.join(__dirname, "out.opus"))
+              } else {
+                await roomChat.sendStateTyping()
+                await message.reply(response.text)
+              }
+            })
+            .catch(async (error) => {
+              terminal.error(error)
+            })
+          return
+          // eslint-disable-next-line no-unused-vars
+        } catch (error) {
+          totalGeminiFlashLiteError++
         }
       }
 
-      await message.reply("Gemini lagi rate limited nih, coba lagi nanti ya!")
+      if (totalGeminiFlashError >= 3 && totalGeminiFlashLiteError >= 3) {
+        await message.reply("Gemini lagi kena rate limit nih, coba lagi nanti ya!")
+      } else {
+        await message.reply("Oops, ada yang error nih. Coba kirim lagi pesannya ya!")
+      }
     } catch (error) {
       terminal.error(error)
       message.reply("Lagi error nih, coba lagi nanti ya!")
@@ -253,7 +282,7 @@ const saveWaveFile = (filename, pcmData, channels = 1, rate = 24000, sampleWidth
 
 const textToSpeech = async (text, fileName) => {
   try {
-    if (lastGeminiFLashTtsRateLimited && Date.now() - lastGeminiFLashTtsRateLimited < 24 * 60 * 60 * 1000) return
+    if (totalGeminiFlashTtsError >= 3) return
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
@@ -276,10 +305,9 @@ const textToSpeech = async (text, fileName) => {
     await convertWavToOpus(path.join(__dirname, wavPath), path.join(__dirname, opusPath))
 
     return opusPath
+    // eslint-disable-next-line no-unused-vars
   } catch (error) {
-    if (!lastGeminiFLashTtsRateLimited || Date.now() - lastGeminiFLashTtsRateLimited >= 24 * 60 * 60 * 1000) {
-      lastGeminiFLashTtsRateLimited = Date.now()
-    }
+    totalGeminiFlashTtsError++
   }
 }
 
