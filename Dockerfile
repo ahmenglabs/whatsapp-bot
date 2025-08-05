@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     ffmpeg \
     python3 \
-    python3-pip \
+    python-is-python3 \
     ca-certificates \
     fonts-liberation \
     libasound2t64 \
