@@ -2,13 +2,9 @@ import "dotenv/config.js"
 import terminal from "../utils/terminal.js"
 import pkg from "whatsapp-web.js"
 const { MessageTypes } = pkg
+import type { Message, Chat } from "whatsapp-web.js"
 
-/**
- * Handle the sticker command
- * @param {import("whatsapp-web.js").Message} message - The incoming message
- * @param {import("whatsapp-web.js").Chat} chat - The chat where the message was sent
- */
-const imageOrVideoToStickerHandler = async (message, chat) => {
+const imageOrVideoToStickerHandler = async (message: Message, chat: Chat) => {
   try {
     let quotedMessage
     if (message.hasQuotedMsg) {
@@ -26,7 +22,8 @@ const imageOrVideoToStickerHandler = async (message, chat) => {
       )
     }
 
-    let media = message.hasQuotedMsg ? await quotedMessage.downloadMedia() : await message.downloadMedia()
+    let media =
+      message.hasQuotedMsg && quotedMessage ? await quotedMessage.downloadMedia() : await message.downloadMedia()
 
     if (!media) {
       await chat.sendStateTyping()
@@ -38,19 +35,14 @@ const imageOrVideoToStickerHandler = async (message, chat) => {
       sendMediaAsSticker: true,
     })
   } catch (error) {
-    terminal.error(error)
+    terminal.error(error instanceof Error ? error.message : String(error))
     await chat.sendStateTyping()
     await message.reply("Lagi ada error nih, coba lagi nanti ya!")
     throw error
   }
 }
 
-/**
- * Handle the sticker command
- * @param {import("whatsapp-web.js").Message} message - The incoming message
- * @param {import("whatsapp-web.js").Chat} chat - The chat where the message was sent
- */
-const stickerToImageOrVideoHandler = async (message, chat) => {
+const stickerToImageOrVideoHandler = async (message: Message, chat: Chat) => {
   try {
     if (!message.hasQuotedMsg) return message.reply("Silahkan quote sticker yang mau dikonversi!")
     const quotedMessage = await message.getQuotedMessage()
@@ -67,7 +59,7 @@ const stickerToImageOrVideoHandler = async (message, chat) => {
       media: media,
     })
   } catch (error) {
-    terminal.error(error)
+    terminal.error(error instanceof Error ? error.message : String(error))
     await chat.sendStateTyping()
     await message.reply("Lagi ada error nih, coba lagi nanti ya!")
     throw error

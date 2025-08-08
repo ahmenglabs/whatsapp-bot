@@ -9,6 +9,7 @@ import terminal from "../utils/terminal.js"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import type { Message, Chat } from "whatsapp-web.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -40,12 +41,16 @@ const safetySettings = [
   },
 ]
 
-let systemInstruction = undefined
+let systemInstruction = ""
 
 try {
   systemInstruction = fs.readFileSync(path.join(__dirname, "../../system-instruction.txt"), "utf8")
 } catch (error) {
-  terminal.warn(`Failed to load system instruction: ${error.message}`)
+  terminal.warn(`Failed to load system instruction: ${error instanceof Error ? error.message : String(error)}`)
+}
+
+if (process.env.GEMINI_API_KEY === undefined) {
+  throw new Error("GEMINI_API_KEY is not defined")
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
@@ -58,7 +63,7 @@ let totalGeminiFlashTtsError = 0
 let lastErrorCountReset = Date.now()
 
 const resetErrorCountsIfNeeded = () => {
-  if (Date.now() - lastErrorCountReset >= 24 * 60 * 60 * 1000) {
+  if (Date.now() - lastErrorCountReset >= 60 * 60 * 1000) {
     totalGeminiFlashError = 0
     totalGeminiFlashLiteError = 0
     totalGeminiFlashTtsError = 0
@@ -71,7 +76,7 @@ const resetErrorCountsIfNeeded = () => {
  * @param {import("whatsapp-web.js").Message} message - The incoming message
  * @param {import("whatsapp-web.js").Chat} roomChat - The chat object
  */
-const geminiHandler = async (message, roomChat) => {
+const geminiHandler = async (message: Message, roomChat: Chat) => {
   resetErrorCountsIfNeeded()
   let modelName = "gemini-2.5-flash"
 
@@ -95,32 +100,42 @@ const geminiHandler = async (message, roomChat) => {
     })
 
     const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
-    const quotedMessageContact = quotedMessage ? await quotedMessage.getContact() : null
+    const quotedMessageContact = quotedMessage ? await quotedMessage?.getContact() : null
     const quotedAuthorName = quotedMessageContact
       ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
       : "Unknown"
     let contents
 
-    if (message.hasMedia || (message.hasQuotedMsg && quotedMessage.hasMedia)) {
-      const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage.downloadMedia()
-      contents = [
-        {
-          inlineData: {
-            mimeType: media.mimetype,
-            data: media.data,
+    if (message.hasMedia || (message.hasQuotedMsg && quotedMessage && quotedMessage?.hasMedia)) {
+      const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage?.downloadMedia()
+      if (media) {
+        contents = [
+          {
+            inlineData: {
+              mimeType: media.mimetype,
+              data: media.data,
+            },
           },
-        },
-        {
-          text: message.hasQuotedMsg
-            ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
-            : `${authorName}: ${message.body}`,
-        },
-      ]
+          {
+            text: message.hasQuotedMsg
+              ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
+              : `${authorName}: ${message.body}`,
+          },
+        ]
+      } else {
+        contents = [
+          {
+            text: message.hasQuotedMsg
+              ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
+              : `${authorName}: ${message.body}`,
+          },
+        ]
+      }
     } else {
       contents = [
         {
           text: message.hasQuotedMsg
-            ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+            ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
             : `${authorName}: ${message.body}`,
         },
       ]
@@ -131,7 +146,8 @@ const geminiHandler = async (message, roomChat) => {
     })
 
     chatHistory.set(chatId, chat.getHistory())
-    textToSpeech(response.text, "out.wav")
+    const responseText = response.text || "Sorry, I couldn't generate a response."
+    textToSpeech(responseText, "out.wav")
       .then(async () => {
         if (fs.existsSync(path.join(__dirname, "out.wav"))) {
           const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
@@ -142,7 +158,7 @@ const geminiHandler = async (message, roomChat) => {
           fs.unlinkSync(path.join(__dirname, "out.opus"))
         } else {
           await roomChat.sendStateTyping()
-          await message.reply(response.text)
+          await message.reply(responseText)
         }
       })
       .catch(async (error) => {
@@ -179,32 +195,42 @@ const geminiHandler = async (message, roomChat) => {
           })
 
           const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
-          const quotedMessageContact = quotedMessage ? await quotedMessage.getContact() : null
+          const quotedMessageContact = quotedMessage ? await quotedMessage?.getContact() : null
           const quotedAuthorName = quotedMessageContact
             ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
             : "Unknown"
           let contents
 
-          if (message.hasMedia || (message.hasQuotedMsg && quotedMessage.hasMedia)) {
-            const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage.downloadMedia()
-            contents = [
-              {
-                inlineData: {
-                  mimeType: media.mimetype,
-                  data: media.data,
+          if (message.hasMedia || (message.hasQuotedMsg && quotedMessage?.hasMedia)) {
+            const media = message.hasMedia ? await message.downloadMedia() : await quotedMessage?.downloadMedia()
+            if (media) {
+              contents = [
+                {
+                  inlineData: {
+                    mimeType: media.mimetype,
+                    data: media.data,
+                  },
                 },
-              },
-              {
-                text: message.hasQuotedMsg
-                  ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
-                  : `${authorName}: ${message.body}`,
-              },
-            ]
+                {
+                  text: message.hasQuotedMsg
+                    ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
+                    : `${authorName}: ${message.body}`,
+                },
+              ]
+            } else {
+              contents = [
+                {
+                  text: message.hasQuotedMsg
+                    ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
+                    : `${authorName}: ${message.body}`,
+                },
+              ]
+            }
           } else {
             contents = [
               {
                 text: message.hasQuotedMsg
-                  ? `Replying to ${quotedMessage.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage.body}\n\n${authorName}: ${message.body}`
+                  ? `Replying to ${quotedMessage?.fromMe ? process.env.BOT_NAME : quotedAuthorName}: ${quotedMessage?.body}\n\n${authorName}: ${message.body}`
                   : `${authorName}: ${message.body}`,
               },
             ]
@@ -215,7 +241,8 @@ const geminiHandler = async (message, roomChat) => {
           })
 
           chatHistory.set(chatId, chat.getHistory())
-          textToSpeech(response.text, "out.wav")
+          const responseText = response.text || "Sorry, I couldn't generate a response."
+          textToSpeech(responseText, "out.wav")
             .then(async () => {
               if (fs.existsSync(path.join(__dirname, "out.wav"))) {
                 const media = MessageMedia.fromFilePath(path.join(__dirname, "out.opus"))
@@ -226,7 +253,7 @@ const geminiHandler = async (message, roomChat) => {
                 fs.unlinkSync(path.join(__dirname, "out.opus"))
               } else {
                 await roomChat.sendStateTyping()
-                await message.reply(response.text)
+                await message.reply(responseText)
               }
             })
             .catch(async (error) => {
@@ -245,13 +272,13 @@ const geminiHandler = async (message, roomChat) => {
         await message.reply("Oops, ada yang error nih. Coba kirim lagi pesannya ya!")
       }
     } catch (error) {
-      terminal.error(error)
+      terminal.error(String(error))
       message.reply("Lagi error nih, coba lagi nanti ya!")
     }
   }
 }
 
-const convertWavToOpus = (inputPath, outputPath) => {
+const convertWavToOpus = (inputPath: string, outputPath: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     ffmpeg(inputPath)
       .audioCodec("libopus")
@@ -263,7 +290,13 @@ const convertWavToOpus = (inputPath, outputPath) => {
   })
 }
 
-const saveWaveFile = (filename, pcmData, channels = 1, rate = 24000, sampleWidth = 2) => {
+const saveWaveFile = (
+  filename: string,
+  pcmData: Buffer,
+  channels = 1,
+  rate = 24000,
+  sampleWidth = 2
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     const fullPath = path.join(__dirname, filename)
     const writer = new wav.FileWriter(fullPath, {
@@ -280,22 +313,53 @@ const saveWaveFile = (filename, pcmData, channels = 1, rate = 24000, sampleWidth
   })
 }
 
-const textToSpeech = async (text, fileName) => {
+const textToSpeech = async (text: string, fileName: string): Promise<string | undefined> => {
   try {
     if (totalGeminiFlashTtsError >= 3) return
 
+    if (process.env.SPEAKER_1 === undefined || process.env.SPEAKER_2 === undefined) {
+      throw new Error("SPEAKER_1 and SPEAKER_2 must be defined")
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Read aloud in a warm and romantic tone: ${text}` }] }],
+      contents: [
+        {
+          parts: [
+            {
+              text: `TTS the following conversation between ${process.env.SPEAKER_1} and ${process.env.SPEAKER_2}:\n\n${text}\n\nUse warm and romantic tones.`,
+            },
+          ],
+        },
+      ],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {
-          prebuiltVoiceConfig: { voiceName: "Aoede", language: "id-ID" },
+          multiSpeakerVoiceConfig: {
+            speakerVoiceConfigs: [
+              {
+                speaker: process.env.SPEAKER_1,
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Zephyr" },
+                },
+              },
+              {
+                speaker: process.env.SPEAKER_2,
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Puck" },
+                },
+              },
+            ],
+          },
         },
       },
     })
 
     const data = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data
+    if (!data) {
+      throw new Error("No audio data received from API")
+    }
+
     const audioBuffer = Buffer.from(data, "base64")
 
     const wavPath = fileName

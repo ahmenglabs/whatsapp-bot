@@ -8,13 +8,13 @@ dayjs.extend(timezone)
 dayjs.tz.setDefault("Asia/Jakarta")
 
 const terminal = {
-  info: (message) => {
+  info: (message: string) => {
     console.info(`[${dayjs().format("YYYY-MM-DD HH:mm:ss")}] [INFO] ${message}`)
   },
-  warn: (message) => {
+  warn: (message: string) => {
     console.warn(`[${dayjs().format("YYYY-MM-DD HH:mm:ss")}] [WARN] ${message}`)
   },
-  error: (message) => {
+  error: (message: string) => {
     console.error(`[${dayjs().format("YYYY-MM-DD HH:mm:ss")}] [ERROR] ${message}`)
   },
 }

@@ -5,6 +5,10 @@ import terminal from "./utils/terminal.js"
 import handleMessage from "./handleMessage.js"
 import qrcode from "qrcode-terminal"
 
+if (process.env.FFMPEG_PATH === undefined) {
+  throw new Error("FFMPEG_PATH is not defined")
+}
+
 const client = new Client({
   puppeteer: {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -13,10 +17,10 @@ const client = new Client({
   ffmpegPath: process.env.FFMPEG_PATH,
 })
 
-let loadingPercent = 0
+let loadingPercent: number = 0
 
 client.on("loading_screen", (percent) => {
-  loadingPercent = percent
+  loadingPercent = Number(percent)
   terminal.info(`Loading: ${loadingPercent}%`)
 })
 

@@ -1,13 +1,8 @@
 import { spawn } from "node:child_process"
 import terminal from "../utils/terminal.js"
+import type { Message, Chat } from "whatsapp-web.js"
 
-/**
- * Handle the Python code execution command
- * @param {import("whatsapp-web.js").Message} message - The incoming message
- * @param {import("whatsapp-web.js").Chat} chat - The chat where the message was sent
- * @param {string} code - The Python code to execute
- */
-const runPythonCodeHandler = async (message, chat, code) => {
+const runPythonCodeHandler = async (message: Message, chat: Chat, code: string) => {
   const startTime = Date.now()
 
   try {
@@ -71,11 +66,12 @@ const runPythonCodeHandler = async (message, chat, code) => {
     await message.reply(responseMessage)
   } catch (error) {
     const executionTime = ((Date.now() - startTime) / 1000).toFixed(2)
-    terminal.error(`Python execution error: ${error.message}`)
-    const errorMessage = `Kode dijalankan dalam ${executionTime} detik\n\n${error.message}`
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    terminal.error(`Python execution error: ${errorMessage}`)
+    const responseMessage = `Kode dijalankan dalam ${executionTime} detik\n\n${errorMessage}`
 
     await chat.sendStateTyping()
-    await message.reply(errorMessage)
+    await message.reply(responseMessage)
   }
 }
 

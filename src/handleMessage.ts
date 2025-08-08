@@ -3,18 +3,14 @@ import terminal from "./utils/terminal.js"
 import pkg from "whatsapp-web.js"
 const { MessageTypes } = pkg
 
-// Command Handlers
 import { imageOrVideoToStickerHandler, stickerToImageOrVideoHandler } from "./cmd/sticker.js"
 import geminiHandler from "./cmd/gemini.js"
 import { runPythonCodeHandler } from "./cmd/python.js"
+import type { Message, Chat } from "whatsapp-web.js"
 
 const geminiEnabled = new Set()
 
-/**
- * Handle incoming messages
- * @param {import("whatsapp-web.js").Message} message - The incoming message
- */
-const handleMessage = async (message) => {
+const handleMessage = async (message: pkg.Message) => {
   try {
     if (
       message.type !== MessageTypes.AUDIO &&
@@ -26,10 +22,10 @@ const handleMessage = async (message) => {
       return
 
     const text = message.body
-    const firstLine = text.split("\n")[0] // Ambil baris pertama untuk check command
+    const firstLine = text.split("\n")[0] || ""
     const cmd = firstLine.toLowerCase().trim().split(" ")[0]
     const prefix = process.env.PREFIX || "."
-    const isCmd = firstLine.startsWith(prefix) // Check command dari baris pertama
+    const isCmd = firstLine.startsWith(prefix)
     const chat = await message.getChat()
     const isGroup = chat.isGroup
     const args = firstLine.slice(prefix.length).trim().split(/ +/).slice(1)
@@ -96,7 +92,7 @@ const handleMessage = async (message) => {
       await Promise.all([chat.sendSeen(), geminiHandler(message, chat)])
     }
   } catch (error) {
-    terminal.error(error)
+    terminal.error(error instanceof Error ? error.message : String(error))
   }
 }
 
