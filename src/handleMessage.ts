@@ -12,13 +12,7 @@ const geminiEnabled = new Set()
 
 const handleMessage = async (message: pkg.Message) => {
   try {
-    if (
-      message.type !== MessageTypes.AUDIO &&
-      message.type !== MessageTypes.VOICE &&
-      message.type !== MessageTypes.TEXT &&
-      message.type !== MessageTypes.IMAGE &&
-      message.type !== MessageTypes.VIDEO
-    )
+    if (message.type !== MessageTypes.AUDIO && message.type !== MessageTypes.VOICE && message.type !== MessageTypes.TEXT && message.type !== MessageTypes.IMAGE && message.type !== MessageTypes.VIDEO)
       return
 
     const text = message.body
@@ -76,9 +70,7 @@ const handleMessage = async (message: pkg.Message) => {
         if (!code) {
           await chat.sendSeen()
           await chat.sendStateTyping()
-          return message.reply(
-            `Silakan kirim kode Python atau reply pesan yang berisi kode Python.\n\nContoh: ${prefix}python print('Hello, World!')`
-          )
+          return message.reply(`Silakan kirim kode Python atau reply pesan yang berisi kode Python.\n\nContoh: ${prefix}python print('Hello, World!')`)
         }
 
         return await Promise.all([chat.sendSeen(), runPythonCodeHandler(message, chat, code)])

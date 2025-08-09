@@ -11,19 +11,12 @@ const imageOrVideoToStickerHandler = async (message: Message, chat: Chat) => {
       quotedMessage = await message.getQuotedMessage()
     }
 
-    if (
-      message.type !== MessageTypes.IMAGE &&
-      message.type !== MessageTypes.VIDEO &&
-      (!quotedMessage || (quotedMessage.type !== MessageTypes.IMAGE && quotedMessage.type !== MessageTypes.VIDEO))
-    ) {
+    if (message.type !== MessageTypes.IMAGE && message.type !== MessageTypes.VIDEO && (!quotedMessage || (quotedMessage.type !== MessageTypes.IMAGE && quotedMessage.type !== MessageTypes.VIDEO))) {
       await chat.sendStateTyping()
-      return message.reply(
-        "Kirim gambar atau video untuk diubah menjadi stiker. Atau quote pesan yang berisi gambar atau video."
-      )
+      return message.reply("Kirim gambar atau video untuk diubah menjadi stiker. Atau quote pesan yang berisi gambar atau video.")
     }
 
-    let media =
-      message.hasQuotedMsg && quotedMessage ? await quotedMessage.downloadMedia() : await message.downloadMedia()
+    let media = message.hasQuotedMsg && quotedMessage ? await quotedMessage.downloadMedia() : await message.downloadMedia()
 
     if (!media) {
       await chat.sendStateTyping()

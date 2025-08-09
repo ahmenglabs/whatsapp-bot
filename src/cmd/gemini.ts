@@ -101,9 +101,7 @@ const geminiHandler = async (message: Message, roomChat: Chat) => {
 
     const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
     const quotedMessageContact = quotedMessage ? await quotedMessage?.getContact() : null
-    const quotedAuthorName = quotedMessageContact
-      ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
-      : "Unknown"
+    const quotedAuthorName = quotedMessageContact ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown" : "Unknown"
     let contents
 
     if (message.hasMedia || (message.hasQuotedMsg && quotedMessage && quotedMessage?.hasMedia)) {
@@ -196,9 +194,7 @@ const geminiHandler = async (message: Message, roomChat: Chat) => {
 
           const quotedMessage = message.hasQuotedMsg ? await message.getQuotedMessage() : null
           const quotedMessageContact = quotedMessage ? await quotedMessage?.getContact() : null
-          const quotedAuthorName = quotedMessageContact
-            ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown"
-            : "Unknown"
+          const quotedAuthorName = quotedMessageContact ? quotedMessageContact.name || quotedMessageContact.pushname || "Unknown" : "Unknown"
           let contents
 
           if (message.hasMedia || (message.hasQuotedMsg && quotedMessage?.hasMedia)) {
@@ -290,13 +286,7 @@ const convertWavToOpus = (inputPath: string, outputPath: string): Promise<string
   })
 }
 
-const saveWaveFile = (
-  filename: string,
-  pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
-): Promise<void> => {
+const saveWaveFile = (filename: string, pcmData: Buffer, channels = 1, rate = 24000, sampleWidth = 2): Promise<void> => {
   return new Promise((resolve, reject) => {
     const fullPath = path.join(__dirname, filename)
     const writer = new wav.FileWriter(fullPath, {
